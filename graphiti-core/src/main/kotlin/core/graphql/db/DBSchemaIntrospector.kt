@@ -1,5 +1,6 @@
-package app
+package core
 
+import core.graphql.db.ConnectionProvider
 import graphql.Scalars
 import graphql.Scalars.GraphQLID
 import graphql.schema.GraphQLArgument.newArgument
@@ -48,7 +49,7 @@ class DBSchemaIntrospector(private val connectionProvider: ConnectionProvider) {
      * Inspect the database that was configured for the connection provider. We grab
      * the meta data and inspect all tables that are available.
      */
-    private fun inspectDB() {
+    private inline fun inspectDB() {
         connectionProvider.get().use { dbConnection ->
             val dbInfo = DBInfo(dbConnection)
             inspectTables(dbInfo)
@@ -78,11 +79,6 @@ class DBSchemaIntrospector(private val connectionProvider: ConnectionProvider) {
             inspectInputColumn(tableInputObjectType, columnInfo)
         }
 
-        // Add ID fields required by Maana.
-        tableObjectType.field(newFieldDefinition()
-            .name("id")
-            .type(nonNull(GraphQLID)))
-
         tableInputObjectType.field(
             newInputObjectField()
             .name("id")
@@ -94,6 +90,7 @@ class DBSchemaIntrospector(private val connectionProvider: ConnectionProvider) {
         addQueryDefinition(tableName, tableType)
         addMutationDefinition(tableName, tableType, tableInputType)
     }
+
 
     /**
      * Inspect a single column.
@@ -120,8 +117,13 @@ class DBSchemaIntrospector(private val connectionProvider: ConnectionProvider) {
     }
 
     private fun addQueryDefinition(tableName: String, tableType: GQLOT) {
+        // Default query
         queryType.field(newFieldDefinition()
             .name("${tableName}_table")
+//            .argument(newArgument()
+//                .name("where")
+//
+//            )
             .type(list(tableType))
             .dataFetcher(SqlQueryDataFetcher(connectionProvider, tableName)))
     }
@@ -182,20 +184,24 @@ private class TableInfo(private val metaData: DatabaseMetaData, private val resu
  * val isNullable = columnAsResultSet.getString("IS_NULLABLE")
  * val is_autoIncrment = columnAsResultSet.getString("IS_AUTOINCREMENT")
  */
-private class ColumnInfo(private val resultSet: ResultSet) {
+private class ColumnInfo(private val resultSet: ResultSet) : IColumnInfo {
 
     enum class GqlEnumType(val type: GraphQLScalarType) {
         BOOLEAN(Scalars.GraphQLString),
-        VARCHAR(Scalars.GraphQLString),
+        BIGSERIAL(Scalars.GraphQLBigInteger),
         CHAR(Scalars.GraphQLString),
         TEXT(Scalars.GraphQLString),
         DOUBLE(Scalars.GraphQLBigDecimal),
         DECIMAL(Scalars.GraphQLBigDecimal),
+        FLOAT8(Scalars.GraphQLFloat),
         INT4(Scalars.GraphQLInt),
-        REAL(Scalars.GraphQLBigDecimal),
+        INT8(Scalars.GraphQLInt),
+        INTEGER(Scalars.GraphQLInt),
         FLOAT(Scalars.GraphQLFloat),
-        INTEGER(Scalars.GraphQLInt);
-
+        REAL(Scalars.GraphQLBigDecimal),
+        TIMESTAMP(Scalars.GraphQLString),
+        BYTEA(Scalars.GraphQLByte),
+        VARCHAR(Scalars.GraphQLString);
         companion object {
             fun type(columnTypeName: String): GraphQLScalarType {
                 return valueOf(columnTypeName.toUpperCase()).type
@@ -203,11 +209,11 @@ private class ColumnInfo(private val resultSet: ResultSet) {
         }
     }
 
-    fun getColumnName() = resultSet.getString("COLUMN_NAME")
+    override fun getColumnName() = resultSet.getString("COLUMN_NAME")
 
-    fun getColumnType() = resultSet.getString("TYPE_NAME")
+    override fun getColumnType() = resultSet.getString("TYPE_NAME")
 
-    fun getGraphQLType(): GraphQLScalarType {
+    override fun getGraphQLType(): GraphQLScalarType {
         val columnType = getColumnType()
         return GqlEnumType.type(columnType)
     }

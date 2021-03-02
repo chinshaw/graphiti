@@ -1,8 +1,8 @@
 //package db
 //
-//import app.ConnectionProvider
-//import app.DBSchemaIntrospector
-//import app.asSDL
+//import ConnectionProvider
+//import DBSchemaIntrospector
+//import asSDL
 //import graphql.schema.idl.SchemaPrinter
 //import org.junit.Test
 //
@@ -27,7 +27,7 @@
 //        val gqlSchema = inspector.genSchema()
 //        println(gqlSchema.asSDL())
 //
-//        val gql = app.asExecutable()
+//        val gql = asExecutable()
 //        val result = gql.execute(
 //            "{rig_table { " +
 //                    "id " +

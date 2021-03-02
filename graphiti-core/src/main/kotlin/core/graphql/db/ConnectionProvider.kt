@@ -1,4 +1,4 @@
-package app
+package core.graphql.db
 
 import java.sql.Connection
 import java.sql.DriverManager
@@ -7,6 +7,7 @@ import java.util.*
 class ConnectionProvider(val uri: String, val username: String, val password: String) {
 
     val props = Properties()
+
     init {
         props.setProperty("user", username)
         props.setProperty("password", password)

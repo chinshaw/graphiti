@@ -1,5 +1,6 @@
-package app
+package core
 
+import core.graphql.db.ConnectionProvider
 import graphql.schema.DataFetcher
 import graphql.schema.DataFetchingEnvironment
 
